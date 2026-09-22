@@ -80,8 +80,7 @@ st.divider()
 
 # --- MAIN LAYOUT: CATEGORY VIEWS ---
 st.subheader("🌐 Пазари и Котировки")
-view_mode = st.radio("Изглед на пазара:", ["Всички заедно (3 клетки)", само криптото", "Само ценни метали", "Само S&P / Акции"], horizontal=True, label_visibility="collapsed")
-# Quick fix for string label typo in radio
+view_mode = st.radio("Изглед на пазара:", ["Всички заедно (3 клетки)", "Само криптото", "Само ценни метали", "Само S&P / Акции"], horizontal=True, label_visibility="collapsed")
 view_mode = "Всички заедно (3 клетки)" if "Всички" in view_mode else view_mode
 
 c_crypto, c_metals, c_stocks = st.columns(3)
