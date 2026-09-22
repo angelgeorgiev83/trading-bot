@@ -144,7 +144,7 @@ with col_trade:
       cost = exec_price * trade_qty
       if st.session_state.balance >= cost:
           st.session_state.balance -= cost
-          st.success(fКупени {trade_qty} {trade_symbol.upper()} по ${exec_price:,.2f}!")
+          st.success(f"Купих {trade_qty} {trade_symbol.upper()} по цена {exec_price}")
           # log trade
           df_log = pd.DataFrame([{"Time": str(datetime.datetime.now()), "Type": "BUY", "Symbol": trade_symbol.upper(), "Qty": trade_qty, "Price": exec_price}])
           if os.path.exists("trades.csv"):
