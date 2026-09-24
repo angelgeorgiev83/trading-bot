@@ -73,7 +73,7 @@ if "portfolio" not in st.session_state:
         "Tesla (TSLA)": 0.0, "Apple (AAPL)": 0.0, "Microsoft (MSFT)": 0.0
     }
 
-# --- ЦЕНИ И ИСТОЧНИКИ ДАННИХ ---
+# --- ЦЕНИ И ИСТОЧНИЦИ ДАННИХ ---
 prices = {
     "BTC": 64250.00,
     "ETH": 3120.00,
