@@ -125,7 +125,6 @@ else:
         st.write(f"👤 **{st.session_state.username}**")
         st.markdown("---")
         
-        # Използваме стабиленselectbox или radio за менюто
         menu = st.radio("Меню", [
             "📊 Криптовалути", 
             "🪙 Благородни Метали", 
@@ -186,4 +185,5 @@ else:
             col_b1, col_b2 = st.columns(2)
             with col_b1:
                 if st.button("🟢 КУПУВАЙ", key="buy_btn_key"):
-                    if st.session_state.us
+                    if st.session_state.usd_balance >= amount_usd:
+                        st.session
