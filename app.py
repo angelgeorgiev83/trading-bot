@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- ИНЖЕКТИРАНЕ НА МОДЕРЕН И КОМПАКТЕН CSS ---
+# --- ИНЖЕКТИРАНЕ НА СТИЛОВЕ ---
 st.markdown("""
     <style>
     .stApp {
@@ -45,15 +45,12 @@ st.markdown("""
         color: #f0f6fc !important;
         font-size: 15px !important;
     }
-    h1 { font-size: 24px !important; }
-    h2 { font-size: 20px !important; }
-    h3 { font-size: 16px !important; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- УПРАВЛЕНИЕ НА СЪСТОЯНИЕТО (SESSION STATE) ---
+# --- УПРАВЛЕНИЕ НА СЪСТОЯНИЕТО ---
 if "users_db" not in st.session_state:
-    st.session_state.users_db = {"admin": "admin123"} # База с регистрирани потребители
+    st.session_state.users_db = {"angelgeorgiev@abv.bg": "123456"}
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "username" not in st.session_state:
@@ -79,7 +76,7 @@ prices = {
     "Microsoft (MSFT)": 415.00
 }
 
-# --- ФОРМА ЗА ВХОД И РЕГИСТРАЦИЯ ---
+# --- ЕКРАН ЗА ВХОД И РЕГИСТРАЦИЯ ---
 if not st.session_state.logged_in:
     col1, col2, col3 = st.columns([1, 1.4, 1])
     
@@ -91,7 +88,7 @@ if not st.session_state.logged_in:
         
         with tab_login:
             with st.form("login_form"):
-                l_user = st.text_input("Потребителско име", key="l_u")
+                l_user = st.text_input("Потребителско име / Имейл", key="l_u")
                 l_pass = st.text_input("Парола", type="password", key="l_p")
                 submit_l = st.form_submit_button("Вход в системата")
                 
@@ -100,54 +97,64 @@ if not st.session_state.logged_in:
                         st.session_state.logged_in = True
                         st.session_state.username = l_user
                         st.success("Успешен вход!")
-                        time.sleep(0.8)
+                        time.sleep(0.5)
                         st.rerun()
                     else:
                         st.error("Грешно потребителско име или парола!")
                         
         with tab_reg:
             with st.form("reg_form"):
-                r_user = st.text_input("Ново потребителско име", key="r_u")
-                r_pass = st.text_input("Нова парола", type="password", key="r_p")
-                submit_r = st.form_submit_button("Регистрирай се и запази")
+                r_user = st.text_input("Въведете имейл / Потребителско име", key="r_u")
+                r_pass = st.text_input("Изберете парола", type="password", key="r_p")
+                submit_r = st.form_submit_button("Регистрирай се")
                 
                 if submit_r:
                     if r_user and r_pass:
-                        if r_user in st.session_state.users_db:
-                            st.warning("Това потребителско име вече съществува!")
-                        else:
-                            st.session_state.users_db[r_user] = r_pass
-                            st.session_state.logged_in = True
-                            st.session_state.username = r_user
-                            st.success("Регистрацията е успешна! Влизане...")
-                            time.sleep(0.8)
-                            st.rerun()
+                        st.session_state.users_db[r_user] = r_pass
+                        st.session_state.logged_in = True
+                        st.session_state.username = r_user
+                        st.success("Регистрацията е успешна!")
+                        time.sleep(0.5)
+                        st.rerun()
                     else:
-                        st.error("Моля, попълнете всички полета.")
+                        st.error("Моля, попълнете полетата.")
 
 else:
-    # --- СТРАНИЧНА ЛЕНТА ---
+    # --- СТРАНИЧНА ЛЕНТА С НАВИГАЦИЯ ---
     with st.sidebar:
         st.write(f"👤 **{st.session_state.username}**")
         st.markdown("---")
+        
+        # Използваме стабиленselectbox или radio за менюто
         menu = st.radio("Меню", [
             "📊 Криптовалути", 
             "🪙 Благородни Метали", 
             "📈 Акции", 
             "💰 Портфейл & Изтегляне", 
             "⚙️ Автоматични Ордери (TP/SL)"
-        ])
+        ], key="main_menu_radio")
+        
         st.markdown("---")
         if st.button("Изход (Logout)"):
             st.session_state.logged_in = False
             st.session_state.username = ""
             st.rerun()
 
-    # --- ФУНКЦИЯ ЗА ТЪРГОВИЯ (УНИВЕРСАЛНА) ---
-    def render_trading_section(asset_list, title):
-        st.title(title)
-        
-        # Общ баланс метрики
+    # --- ОСНОВНА ЛОГИКА ЗА СТРАНИЦИТЕ ---
+    if menu == "📊 Криптовалути":
+        active_list = ["BTC", "ETH", "SOL"]
+        st.title("📊 Криптовалути - Пазар и Търговия")
+    elif menu == "🪙 Благородни Метали":
+        active_list = ["Злато (XAU)", "Сребро (XAG)"]
+        st.title("🪙 Благородни Метали - Графики и Търговия")
+    elif menu == "📈 Акции":
+        active_list = ["Tesla (TSLA)", "Apple (AAPL)", "Microsoft (MSFT)"]
+        st.title("📈 Световни Акции - Пазар и Търговия")
+    else:
+        active_list = []
+
+    # Ако сме на някоя от търговските страници
+    if menu in ["📊 Криптовалути", "🪙 Благородни Метали", "📈 Акции"]:
         crypto_val = sum(st.session_state.portfolio[k] * prices[k] for k in prices)
         total_nw = st.session_state.usd_balance + crypto_val
         
@@ -160,28 +167,23 @@ else:
         c_left, c_right = st.columns([1.5, 1])
         
         with c_left:
-            st.subheader("Пазарна Графика & Преглед")
-            chart_df = pd.DataFrame(np.random.randn(15, len(asset_list)) * 5 + 100, columns=asset_list)
+            st.subheader("Ценова Графика")
+            chart_df = pd.DataFrame(np.random.randn(15, len(active_list)) * 5 + 100, columns=active_list)
             st.line_chart(chart_df)
             
         with c_right:
             st.subheader("Поръчка (Купи / Продай)")
-            sel_asset = st.selectbox("Изберете актив", asset_list)
+            sel_asset = st.selectbox("Изберете актив", active_list, key="sel_asset_key")
             cur_p = prices[sel_asset]
             st.info(f"Текуща цена за 1 {sel_asset}: **${cur_p:,.2f}**")
             
-            # Сума в долари
-            amount_usd = st.number_input("Сума в долари ($)", min_value=1.0, max_value=max(float(st.session_state.usd_balance), 1.0), value=100.0, step=10.0)
-            slider_usd = st.slider("Слайдър сума ($)", 0.0, max(float(st.session_state.usd_balance), 1.0), float(amount_usd))
-            final_usd = slider_usd if slider_usd != 100.0 else amount_usd
+            amount_usd = st.number_input("Сума в долари ($)", min_value=1.0, max_value=max(float(st.session_state.usd_balance), 1.0), value=100.0, step=10.0, key="amt_usd_key")
             
-            # Ордери тип
-            order_type = st.selectbox("Тип ордер", ["Пазарен (Market)", "Лимитен (Limit Order)"])
+            order_type = st.selectbox("Тип ордер", ["Пазарен (Market)", "Лимитен (Limit Order)"], key="ord_type_key")
             if order_type == "Лимитен (Limit Order)":
-                st.number_input("Целева цена за изпълнение ($)", value=cur_p)
+                st.number_input("Целева цена за изпълнение ($)", value=cur_p, key="limit_p_key")
                 
             col_b1, col_b2 = st.columns(2)
             with col_b1:
-                if st.button("🟢 КУПУВАЙ"):
-                    if st.session_state.usd_balance >= final_usd:
-                        st.session_state.u
+                if st.button("🟢 КУПУВАЙ", key="buy_btn_key"):
+                    if st.session_state.us
