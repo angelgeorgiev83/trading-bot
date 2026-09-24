@@ -1,158 +1,180 @@
 import streamlit as st
 import pandas as pd
-import requests
-import datetime
-import os
 import numpy as np
+import time
 
-# --- PAGE SETUP ---
-st.set_page_config(page_title="Paperstack Pro - Trading & Backtest Lab", layout="wide")
+# --- НАСТРОЙКА НА СТРАНИЦАТА ---
+st.set_page_config(
+    page_title="Professional Trading Platform",
+    page_icon="📈",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# --- INITIALIZE STATE ---
-if "balance" not in st.session_state:
-    st.session_state.balance = 10000.0
-if "initial_balance" not in st.session_state:
-    st.session_state.initial_balance = 10000.0
-if "positions" not in st.session_state:
-    st.session_state.positions = {}
-
-# --- DATA LOADERS ---
-@st.cache_data(ttl=60)
-def get_crypto_prices():
-    try:
-        url = "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false"
-        r = requests.get(url, timeout=5)
-        if r.status_code == 200:
-            data = r.json()
-            return {item["symbol"].upper(): {"name": item["name"], "price": item["current_price"]} for item in data}
-    except:
-        pass
-    return {"BTC": {"name": "Bitcoin", "price": 63500.0}, "ETH": {"name": "Ethereum", "price": 3200.0}}
-
-@st.cache_data(ttl=300)
-def get_metals_and_stocks():
-    return {
-        "Gold (XAU)": 2400.0,
-        "Silver (XAG)": 28.50,
-        "Platinum (XPT)": 980.0,
-        "AAPL": 225.0,
-        "MSFT": 420.0,
-        "NVDA": 130.0,
-        "SPY (S&P 500)": 550.0
+# --- ИНЖЕКТИРАНЕ НА МОДЕРЕН CSS (Тъмна тема и професионален дизайн) ---
+st.markdown("""
+    <style>
+    /* Цялостен фон и шрифт /
+    .stApp {
+        background-color: #0e1117;
+        color: #ffffff;
+        font-family: 'Inter', sans-serif;
     }
-
-crypto_market = get_crypto_prices()
-metals_stocks = get_metals_and_stocks()
-btc_price = crypto_market.get("BTC", {}).get("price", 63500.0)
-
-# --- SIDEBAR: NAVIGATION & SETTINGS ---
-st.sidebar.markdown("## 📊 Paperstack Lab")
-section = st.sidebar.radio("Навигация", ["🚀 Търговия & Пазари", "🧪 Backtest & Strategy Lab", "📜 История на сделките"])
-
-st.sidebar.divider()
-st.sidebar.markdown("### ⚙️ Портфейл контрол")
-if st.sidebar.button("🔄 Нулиране на сметката ($10,000)"):
-    st.session_state.balance = 10000.0
-    st.session_state.positions = {}
-    if os.path.exists("trades.csv"):
-        os.remove("trades.csv")
-    st.rerun()
-
-# --- TOP METRICS BAR ---
-col1, col2, col3, col4, col5 = st.columns(5)
-col1.metric("💵 Свободен баланс", f"${st.session_state.balance:,.2f}")
-total_portfolio_value = st.session_state.balance
-pnl_total = total_portfolio_value - st.session_state.initial_balance
-col2.metric("📊 Портфейл общо", f"${total_portfolio_value:,.2f}")
-col3.metric("📈 Общ PnL", f"${pnl_total:,.2f}", delta=f"${pnl_total:,.2f}")
-col4.metric("₿ BTC Цена", f"${btc_price:,.2f}")
-col5.metric("🥇 Gold цена", f"${metals_stocks.get('Gold (XAU)', 2400.0):,.2f}")
-
-st.divider()
-
-# --- SECTION 1: TRADING & MARKETS ---
-if section == "🚀 Търговия & Пазари":
-    st.subheader("🌐 Пазари в реално време (Crypto, Метали, Акции)")
     
-    tab_crypto, tab_metals, tab_stocks = st.tabs(["🪙 Криптовалути (Топ 50)", "🥇 Ценни Метали", "📈 S&P 500 / Акции"])
+    / Стил за контейнери / карти /
+    .css-1r6slb0, .stCard, div[data-testid="stVerticalBlock"] > div[style="background-color"] {
+        background-color: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
     
-    with tab_crypto:
-        df_crypto = pd.DataFrame([{"Символ": k, "Име": v["name"], "Цена ($)": v["price"]} for k, v in crypto_market.items()])
-        st.dataframe(df_crypto, use_container_width=True, height=350)
-        
-    with tab_metals:
-        df_metals = pd.DataFrame([{"Метал": k, "Цена ($)": v} for k, v in list(metals_stocks.items())[:3]])
-        st.dataframe(df_metals, use_container_width=True, height=250)
-        
-    with tab_stocks:
-        df_stocks = pd.DataFrame([{"Акция / ETF": k, "Цена ($)": v} for k, v in list(metals_stocks.items())[3:]])
-        st.dataframe(df_stocks, use_container_width=True, height=250)
+    /* Персонализирани бутони /
+    .stButton>button {
+        background: linear-gradient(135deg, #238636 0%, #2ea043 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-weight: 600;
+        transition: 0.3s;
+        width: 100%;
+    }
+    .stButton>button:hover {
+        background: linear-gradient(135deg, #2ea043 0%, #3fb950 100%);
+        box-shadow: 0 0 10px rgba(46, 160, 67, 0.5);
+    }
+    
+    / Полета за въвеждане /
+    .stTextInput>div>div>input, .stNumberInput>div>div>input {
+        background-color: #0d1117;
+        color: #ffffff;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+    }
+    
+    / Страничен панел (Sidebar) /
+    [data-testid="stSidebar"] {
+        background-color: #0b0e14;
+        border-right: 1px solid #30363d;
+    }
+    
+    / Заглавия */
+    h1, h2, h3 {
+        color: #f0f6fc;
+        font-weight: 700;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
-    st.divider()
+# --- УПРАВЛЕНИЕ НА СЪСТОЯНИЕТО ЗА ВХОД (SESSION STATE) ---
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "username" not in st.session_state:
+    st.session_state.username = ""
+
+# --- ФОРМА ЗА ВХОД / РЕГИСТРАЦИЯ (АКО НЕ Е ВЛЯЗЪЛ) ---
+if not st.session_state.logged_in:
+    col1, col2, col3 = st.columns([1, 1.2, 1])
     
-    # Execution Panel
-    c_exec, c_chart = st.columns([1, 1])
-    with c_exec:
-        st.markdown("### ⚡ Ръчно изпълнение на сделка")
-        trade_symbol = st.text_input("Избери символ (напр. BTC, ETH, AAPL, Gold (XAU))", value="BTC")
-        trade_qty = st.number_input("Количество", min_value=0.001, value=0.1, step=0.01)
+    with col2:
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.markdown("### 🔐 Вход в платформата")
+        st.write("Моля, влезте в профила си, за да достъпите търговския панел.")
         
-        # Determine price dynamically
-        current_exec_price = crypto_market.get(trade_symbol.upper(), metals_stocks.get(trade_symbol, 100.0))
-        if isinstance(current_exec_price, dict):
-            current_exec_price = current_exec_price["price"]
+        with st.form("login_form"):
+            username_input = st.text_input("Потребителско име или Имейл")
+            password_input = st.text_input("Парола", type="password")
+            submit_login = st.form_submit_button("Вход")
             
-        st.info(f"Идентифицирана цена за {trade_symbol.upper()}: ${current_exec_price:,.2f}")
+            if submit_login:
+                if username_input and password_input:
+                    st.session_state.logged_in = True
+                    st.session_state.username = username_input
+                    st.success("Успешен вход! Зареждане на панела...")
+                    time.sleep(1)
+                    st.rerun()
+                else:
+                    st.error("Моля, попълнете всички полета.")
+                    
+        st.markdown("---")
+        st.info("💡 Тестов достъп: Можете да въведете произволни данни за вход, за да разгледате демо интерфейса.")
 
-        b1, b2 = st.columns(2)
-        if b1.button("🟢 Купи сега"):
-            cost = current_exec_price * trade_qty
-            if st.session_state.balance >= cost:
-                st.session_state.balance -= cost
-                st.success(f"Успешно купени {trade_qty} на {trade_symbol.upper()} по ${current_exec_price:,.2f}!")
-                df_log = pd.DataFrame([{"Time": str(datetime.datetime.now()), "Type": "BUY", "Symbol": trade_symbol.upper(), "Qty": trade_qty, "Price": current_exec_price}])
-                df_log.to_csv("trades.csv", mode='a', header=not os.path.exists("trades.csv"), index=False)
-            else:
-                st.error("Няма достатъчно свободен баланс!")
-
-    with c_chart:
-        st.markdown("### 📉 Пазарна графика")
-        sel_chart_asset = st.selectbox("Избери актив за визуализация:", list(crypto_market.keys()) + list(metals_stocks.keys()))
-        base_val = crypto_market.get(sel_chart_asset, {}).get("price", metals_stocks.get(sel_chart_asset, 200.0))
-        if isinstance(base_val, dict):
-            base_val = base_val["price"]
-        trend_data = pd.DataFrame(np.random.randn(40, 1) * (base_val * 0.005) + base_val, columns=["Цена ($)"])
-        st.line_chart(trend_data)
-
-# --- SECTION 2: BACKTEST & STRATEGY LAB ---
-elif section == "🧪 Backtest & Strategy Lab":
-    st.subheader("🧪 Strategy Lab & Backtest Panel")
-    st.markdown("Тествай стратегии преди да ги пуснеш на живо — изберете времеви хоризонт и симулирайте портфолио.")
+else:
+    # --- ОСНОВЕН ПАНЕЛ НА ПЛАТФОРМАТА (СЛЕД УСПЕШЕН ВХОД) ---
     
-    strategy_mode = st.selectbox("Избери стратегия:", ["Day Pulse (Краткосрочна)", "Short Swing (Средносрочна)", "Long Term (Дългосрочна инвестиция)"])
-    
-    col_bt1, col_bt2 = st.columns(2)
-    with col_bt1:
-        start_date = st.date_input("Начална дата за тест", datetime.date(2025, 1, 1))
-    with col_bt2:
-        end_date = st.date_input("Крайна дата за тест", datetime.date(2026, 1, 1))
+    # Странична лента за навигация
+    with st.sidebar:
+        st.image("https://img.icons8.com/clouds/100/000000/user-male-circle.png", width=80)
+        st.write(f"Здравейте, {st.session_state.username}!")
+        st.markdown("---")
         
-    if st.button("🚀 Стартирай Backtest симулация"):
-        st.success(f"Симулацията за стратегия {strategy_mode} приключи успешно!")
-        m1, m2, m3 = st.columns(3)
-        m1.metric("Симулирана възвращаемост", "+24.8%", delta="+5.2%")
-        m2.metric("Win Rate", "64.2%")
-        m3.metric("Максимален драудаун (Max DD)", "-4.5%")
+        menu = st.radio("Навигация", ["📊 Търговия & Пазар", "💰 Портфейл", "⚙️ Настройки"])
         
-        # Dummy backtest equity curve
-        eq_curve = pd.DataFrame(np.cumsum(np.random.randn(30, 1) * 50 + 100) + 10000, columns=["Портфолио капитал ($)"])
-        st.line_chart(eq_curve)
+        st.markdown("---")
+        if st.button("Изход (Logout)"):
+            st.session_state.logged_in = False
+            st.session_state.username = ""
+            st.rerun()
 
-# --- SECTION 3: TRADES HISTORY ---
-elif section == "📜 История на сделките":
-    st.subheader("📜 Пълна история на транзакциите")
-    if os.path.exists("trades.csv"):
-        df_history = pd.read_csv("trades.csv")
-        st.dataframe(df_history, use_container_width=True)
-    else:
-        st.info(" Все още няма регистрирани сделки в системата.")
+    # Основно съдържание според менюто
+    if menu == "📊 Търговия & Пазар":
+        st.title("📈 Пазарен Преглед & Търговия")
+        
+        # Горни метрики (Баланс, Печалба)
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric(label="Общ Баланс", value="$12,450.00", delta="+$340.50 (2.8%)")
+        m2.metric(label="Свободни Средства", value="$4,120.50")
+        m3.metric(label="Активни Позиции", value="3 броя")
+        m4.metric(label="Дневен П&Л", value="+$180.20", delta="1.45%")
+        
+        st.markdown("---")
+        
+        # Секция за изпълнение на поръчка
+        col_left, col_right = st.columns([2, 1])
+        
+        with col_left:
+            st.subheader("Ценова графика (Демо)")
+            # Генериране на примерен график
+            chart_data = pd.DataFrame(
+                np.random.randn(20, 3) * 10 + 100,
+                columns=['BTC/USD', 'ETH/USD', 'SOL/USD']
+            )
+            st.line_chart(chart_data)
+            
+        with col_right:
+            st.subheader("Бърза Поръчка")
+            trade_symbol = st.selectbox("Изберете актив", ["BTC/USD", "ETH/USD", "SOL/USD", "EUR/USD"])
+            trade_type = st.radio("Тип сделка", ["Купува (BUY)", "Продава (SELL)"], horizontal=True)
+            amount = st.number_input("Количество", min_value=0.01, value=1.00, step=0.01)
+            
+            # Примерна логика за цена (тук използваме твоя корегиран ред)
+            current_exec_price = 64250.00 if "BTC" in trade_symbol else 3120.00
+            st.info(f"Идентифицирана цена за {trade_symbol.upper()}: ${current_exec_price:,.2f}")
+            
+            if st.button("Изпълни поръчката"):
+                st.success(f"Успешно изпълнена поръчка за {amount} {trade_symbol}!")
+
+    elif menu == "💰 Портфейл":
+        st.title("💰 Вашият Портфейл")
+        st.write("Тук можете да следите вашите активи, депозити и тегления.")
+        
+        # Таблица с активи
+        portfolio_df = pd.DataFrame({
+            "Актив": ["Bitcoin (BTC)", "Ethereum (ETH)", "Solana (SOL)", "USDT"],
+            "Количество": [0.45, 1.8, 14.5, 2100.00],
+            "Текуща цена ($)": [64250.00, 3120.00, 145.20, 1.00],
+            "Обща стойност ($)": [28912.50, 5616.00, 2105.40, 2100.00]
+        })
+        st.dataframe(portfolio_df, use_container_width=True)
+
+    elif menu == "⚙️ Настройки":
+        st.title("⚙️ Настройки на профила")
+        st.text_input("Име за контакт", value=st.session_state.username)
+        st.text_input("Имейл адрес", value="user@example.com")
+        st.checkbox("Известия по имейл", value=True)
+        st.checkbox("Двуфакторна автентикация (2FA)", value=False)
+        
+        if st.button("Запази промените"):
+            st.success("Настройките бяха запазени успешно!")
