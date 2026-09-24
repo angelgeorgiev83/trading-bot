@@ -173,7 +173,7 @@ else:
             st.subheader("Поръчка (Купи / Продай)")
             sel_asset = st.selectbox("Изберете актив", active_list, key="sel_crypto")
             cur_p = prices[sel_asset]
-            st.info(f"Цена за 1 {sel_asset}: **${cur_p:,.2f}**")
+            st.info("Цена за 1 актив: **$" + f"{cur_p:,.2f}" + "**")
             
             amount_usd = st.number_input("Сума в долари ($)", min_value=1.0, max_value=max(float(st.session_state.usd_balance), 1.0), value=100.0, step=10.0, key="amt_c")
             order_type = st.selectbox("Тип ордер", ["Пазарен (Market)", "Лимитен (Limit Order)"], key="ord_c")
@@ -187,4 +187,4 @@ else:
                         st.session_state.usd_balance -= amount_usd
                         qty = amount_usd / cur_p
                         st.session_state.portfolio[sel_asset] += qty
-                        st.success(f"Успешна
+                        st.success("Успеш
