@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- ИНЖЕКТИРАНЕ НА МОДЕРЕН CSS ---
+# --- ИНЖЕКТИРАНЕ НА МОДЕРЕН CSS (С оправени текстове в менюто) ---
 st.markdown("""
     <style>
     .stApp {
@@ -43,6 +43,11 @@ st.markdown("""
         background-color: #0b0e14;
         border-right: 1px solid #30363d;
     }
+    /* Оправяне на видимостта на текстовете в радио бутоните в менюто */
+    [data-testid="stSidebar"] .stRadio label {
+        color: #f0f6fc !important;
+        font-size: 16px !important;
+    }
     h1, h2, h3 {
         color: #f0f6fc;
         font-weight: 700;
@@ -56,13 +61,18 @@ if "logged_in" not in st.session_state:
 if "username" not in st.session_state:
     st.session_state.username = ""
 if "usd_balance" not in st.session_state:
-    st.session_state.usd_balance = 12450.00  # Начален баланс в долари
+    st.session_state.usd_balance = 12450.00
 if "portfolio" not in st.session_state:
     st.session_state.portfolio = {
         "BTC": 0.0,
         "ETH": 0.0,
         "SOL": 0.0
     }
+
+# --- ЦЕНИ НА АКТИВИТЕ ---
+btc_price = 64250.00
+eth_price = 3120.00
+sol_price = 145.20
 
 # --- ФОРМА ЗА ВХОД ---
 if not st.session_state.logged_in:
@@ -88,13 +98,13 @@ if not st.session_state.logged_in:
                 else:
                     st.error("Моля, попълнете всички полета.")
         st.markdown("---")
-        st.info("💡 Тестов достъп: Въведете произволни данни, за да влезете.")
+        st.info("💡 **Тестов достъп:** Въведете произволни данни, за да влезете.")
 
 else:
     # --- СТРАНИЧНА ЛЕНТА ---
     with st.sidebar:
         st.image("https://img.icons8.com/clouds/100/000000/user-male-circle.png", width=80)
-        st.write(f"Здравейте, {st.session_state.username}!")
+        st.write(f"Здравейте, **{st.session_state.username}**!")
         st.markdown("---")
         
         menu = st.radio("Навигация", ["📊 Търговия & Пазар", "💰 Портфейл", "🔄 Конвертиране", "⚙️ Настройки"])
@@ -105,14 +115,9 @@ else:
             st.session_state.username = ""
             st.rerun()
 
-    # --- ТЪРГОВИЯ & ПАЗАР ---
+    # --- 1. ТЪРГОВИЯ & ПАЗАР ---
     if menu == "📊 Търговия & Пазар":
         st.title("📈 Пазарен Преглед & Търговия")
-        
-        # Изчисляване на обща стойност
-        btc_price = 64250.00
-        eth_price = 3120.00
-        sol_price = 145.20
         
         crypto_value = (
             st.session_state.portfolio["BTC"] * btc_price +
@@ -121,7 +126,6 @@ else:
         )
         total_net_worth = st.session_state.usd_balance + crypto_value
         
-        # Метрики
         m1, m2, m3, m4 = st.columns(4)
         m1.metric(label="Общ Баланс", value=f"${total_net_worth:,.2f}")
         m2.metric(label="Свободни Долари", value=f"${st.session_state.usd_balance:,.2f}")
@@ -143,7 +147,6 @@ else:
         with col_right:
             st.subheader("Бърза Поръчка")
             
-            # Избор на актив и актуална цена
             trade_symbol = st.selectbox("Изберете актив", ["BTC", "ETH", "SOL"])
             if trade_symbol == "BTC":
                 current_price = btc_price
@@ -154,14 +157,11 @@ else:
                 
             st.info(f"Цена за 1 {trade_symbol}: ${current_price:,.2f}")
             
-            # Поле за въвеждане на сума в долари
             amount_usd = st.number_input("Сума в долари ($)", min_value=1.0, max_value=float(st.session_state.usd_balance) if st.session_state.usd_balance > 0 else 1.0, value=100.0, step=10.0)
             
-            # Слайдър за бърз избор на сума (от мин до макс налични долари)
             max_slider = max(st.session_state.usd_balance, 1.0)
             slider_usd = st.slider("Изберете сума чрез слайдър ($)", min_value=0.0, max_value=float(max_slider), value=min(amount_usd, max_slider))
             
-            # Синхронизиране на полето и слайдъра
             final_usd = slider_usd if slider_usd != 100.0 else amount_usd
             
             col_b1, col_b2 = st.columns(2)
@@ -182,4 +182,5 @@ else:
                 if st.button("🔴 Продавай (SELL)"):
                     required_crypto = final_usd / current_price
                     if st.session_state.portfolio[trade_symbol] >= required_crypto and required_crypto > 0:
-                        st.session_state.portfolio[trade_symbol] -= required_
+                        st.session_state.portfolio[trade_symbol] -= required_crypto
+                        st.session_state.usd_balance += final_usd
