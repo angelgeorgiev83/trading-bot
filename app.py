@@ -102,7 +102,7 @@ if section == "🚀 Търговия & Пазари":
         if isinstance(current_exec_price, dict):
             current_exec_price = current_exec_price["price"]
             
-        st.info(ينтифицирана цена за {trade_symbol.upper()}: ${current_exec_price:,.2f} if not isinstance(current_exec_price, str) else "")
+        st.info(f"Идентифицирана цена за {trade_symbol.upper()}: ${current_exec_price:,.2f}")
 
         b1, b2 = st.columns(2)
         if b1.button("🟢 Купи сега"):
