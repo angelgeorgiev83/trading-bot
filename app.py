@@ -161,7 +161,7 @@ else:
             max_slider = max(st.session_state.usd_balance, 1.0)
             slider_usd = st.slider("Изберете сума чрез слайдър ($)", min_value=0.0, max_value=float(max_slider), value=min(amount_usd, max_slider))
             
-            # Синхронизиране на полето и слайдъра (ако е пипан слайдъра)
+            # Синхронизиране на полето и слайдъра
             final_usd = slider_usd if slider_usd != 100.0 else amount_usd
             
             col_b1, col_b2 = st.columns(2)
@@ -172,14 +172,14 @@ else:
                         st.session_state.usd_balance -= final_usd
                         purchased_amount = final_usd / current_price
                         st.session_state.portfolio[trade_symbol] += purchased_amount
-                        st.success(قات=f"Успешно купихте {purchased_amount:.4f} {trade_symbol} за ${final_usd:,.2f}!")
+                        st.success(f"Успешно купихте {purchased_amount:.4f} {trade_symbol} за ${final_usd:,.2f}!")
                         time.sleep(1)
                         st.rerun()
                     else:
-                        st.error("Няте достатъчно свободни средства в долари!")
+                        st.error("Нямате достатъчно свободни средства в долари!")
                         
             with col_b2:
                 if st.button("🔴 Продавай (SELL)"):
                     required_crypto = final_usd / current_price
                     if st.session_state.portfolio[trade_symbol] >= required_crypto and required_crypto > 0:
-                        st.session_state.portfolio[t
+                        st.session_state.portfolio[trade_symbol] -= required_
