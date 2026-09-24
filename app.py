@@ -45,12 +45,21 @@ st.markdown("""
         color: #f0f6fc !important;
         font-size: 15px !important;
     }
+    .source-box {
+        background-color: #161b22;
+        border: 1px solid #30363d;
+        padding: 10px;
+        border-radius: 6px;
+        font-size: 13px;
+        color: #8b949e;
+        margin-bottom: 15px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
 # --- УПРАВЛЕНИЕ НА СЪСТОЯНИЕТО ---
 if "users_db" not in st.session_state:
-    st.session_state.users_db = {"angelgeorgiev@abv.bg": "123456"}
+    st.session_state.users_db = {"angel": "123456"}
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "username" not in st.session_state:
@@ -64,7 +73,7 @@ if "portfolio" not in st.session_state:
         "Tesla (TSLA)": 0.0, "Apple (AAPL)": 0.0, "Microsoft (MSFT)": 0.0
     }
 
-# --- ЦЕНИ НА АКТИВИТЕ ---
+# --- ЦЕНИ И ИСТОЧНИКИ ДАННИХ ---
 prices = {
     "BTC": 64250.00,
     "ETH": 3120.00,
@@ -88,7 +97,7 @@ if not st.session_state.logged_in:
         
         with tab_login:
             with st.form("login_form"):
-                l_user = st.text_input("Потребителско име / Имейл", key="l_u")
+                l_user = st.text_input("Потребителско име", key="l_u")
                 l_pass = st.text_input("Парола", type="password", key="l_p")
                 submit_l = st.form_submit_button("Вход в системата")
                 
@@ -97,15 +106,15 @@ if not st.session_state.logged_in:
                         st.session_state.logged_in = True
                         st.session_state.username = l_user
                         st.success("Успешен вход!")
-                        time.sleep(0.5)
+                        time.sleep(0.3)
                         st.rerun()
                     else:
                         st.error("Грешно потребителско име или парола!")
                         
         with tab_reg:
             with st.form("reg_form"):
-                r_user = st.text_input("Въведете имейл / Потребителско име", key="r_u")
-                r_pass = st.text_input("Изберете парола", type="password", key="r_p")
+                r_user = st.text_input("Ново потребителско име", key="r_u")
+                r_pass = st.text_input("Парола", type="password", key="r_p")
                 submit_r = st.form_submit_button("Регистрирай се")
                 
                 if submit_r:
@@ -114,10 +123,10 @@ if not st.session_state.logged_in:
                         st.session_state.logged_in = True
                         st.session_state.username = r_user
                         st.success("Регистрацията е успешна!")
-                        time.sleep(0.5)
+                        time.sleep(0.3)
                         st.rerun()
                     else:
-                        st.error("Моля, попълнете полетата.")
+                        st.error("Попълнете полетата.")
 
 else:
     # --- СТРАНИЧНА ЛЕНТА С НАВИГАЦИЯ ---
@@ -139,21 +148,12 @@ else:
             st.session_state.username = ""
             st.rerun()
 
-    # --- ОСНОВНА ЛОГИКА ЗА СТРАНИЦИТЕ ---
+    # --- 1. КРИПТОВАЛУТИ ---
     if menu == "📊 Криптовалути":
-        active_list = ["BTC", "ETH", "SOL"]
         st.title("📊 Криптовалути - Пазар и Търговия")
-    elif menu == "🪙 Благородни Метали":
-        active_list = ["Злато (XAU)", "Сребро (XAG)"]
-        st.title("🪙 Благородни Метали - Графики и Търговия")
-    elif menu == "📈 Акции":
-        active_list = ["Tesla (TSLA)", "Apple (AAPL)", "Microsoft (MSFT)"]
-        st.title("📈 Световни Акции - Пазар и Търговия")
-    else:
-        active_list = []
-
-    # Ако сме на някоя от търговските страници
-    if menu in ["📊 Криптовалути", "🪙 Благородни Метали", "📈 Акции"]:
+        st.markdown('<div class="source-box">📡 <b>Източници на ценови данни:</b> Binance API, CoinGecko Feed & Kraken WebSocket</div>', unsafe_allow_html=True)
+        
+        active_list = ["BTC", "ETH", "SOL"]
         crypto_val = sum(st.session_state.portfolio[k] * prices[k] for k in prices)
         total_nw = st.session_state.usd_balance + crypto_val
         
@@ -164,26 +164,27 @@ else:
         st.markdown("---")
         
         c_left, c_right = st.columns([1.5, 1])
-        
         with c_left:
-            st.subheader("Ценова Графика")
-            chart_df = pd.DataFrame(np.random.randn(15, len(active_list)) * 5 + 100, columns=active_list)
+            st.subheader("Ценова Графика (Крипто)")
+            chart_df = pd.DataFrame(np.random.randn(15, len(active_list)) * 120 + 30000, columns=active_list)
             st.line_chart(chart_df)
             
         with c_right:
             st.subheader("Поръчка (Купи / Продай)")
-            sel_asset = st.selectbox("Изберете актив", active_list, key="sel_asset_key")
+            sel_asset = st.selectbox("Изберете актив", active_list, key="sel_crypto")
             cur_p = prices[sel_asset]
-            st.info(f"Текуща цена за 1 {sel_asset}: **${cur_p:,.2f}**")
+            st.info(f"Цена за 1 {sel_asset}: **${cur_p:,.2f}**")
             
-            amount_usd = st.number_input("Сума в долари ($)", min_value=1.0, max_value=max(float(st.session_state.usd_balance), 1.0), value=100.0, step=10.0, key="amt_usd_key")
-            
-            order_type = st.selectbox("Тип ордер", ["Пазарен (Market)", "Лимитен (Limit Order)"], key="ord_type_key")
+            amount_usd = st.number_input("Сума в долари ($)", min_value=1.0, max_value=max(float(st.session_state.usd_balance), 1.0), value=100.0, step=10.0, key="amt_c")
+            order_type = st.selectbox("Тип ордер", ["Пазарен (Market)", "Лимитен (Limit Order)"], key="ord_c")
             if order_type == "Лимитен (Limit Order)":
-                st.number_input("Целева цена за изпълнение ($)", value=cur_p, key="limit_p_key")
+                st.number_input("Целева цена ($)", value=cur_p, key="lim_c")
                 
             col_b1, col_b2 = st.columns(2)
             with col_b1:
-                if st.button("🟢 КУПУВАЙ", key="buy_btn_key"):
+                if st.button("🟢 КУПУВАЙ", key="b_c"):
                     if st.session_state.usd_balance >= amount_usd:
-                        st.session
+                        st.session_state.usd_balance -= amount_usd
+                        qty = amount_usd / cur_p
+                        st.session_state.portfolio[sel_asset] += qty
+                        st.success(f"Успешна
